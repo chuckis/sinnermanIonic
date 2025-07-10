@@ -1,0 +1,191 @@
+{
+  "$schema": "./../dialog-schema.json",
+  "characters": {
+    "guard": {
+      "name": "Стражник",
+      "portrait": "portraits/guard.png",
+      "color": "#8B4513"
+    },
+    "merchant": {
+      "name": "Торговец",
+      "portrait": "portraits/merchant.png",
+      "color": "#DAA520"
+    }
+  },
+  "globalVariables": {
+    "health": 100,
+    "gold": 50,
+    "reputation": 0
+  },
+  "dialogs": [
+    {
+      "id": "guard_encounter",
+      "title": "Встреча со стражником",
+      "speaker": "guard",
+      "text": "Стой! Кто идет?",
+      "choices": [
+        {
+          "text": "Я мирный путешественник",
+          "next": "guard_friendly",
+          "effects": {
+            "variables": {
+              "reputation": {
+                "op": "+=",
+                "value": 1
+              }
+            }
+          }
+        },
+        {
+          "text": "Это не твое дело!",
+          "next": "guard_hostile",
+          "effects": {
+            "variables": {
+              "reputation": {
+                "op": "+=",
+                "value": -2
+              }
+            }
+          }
+        },
+        {
+          "text": "[Подкупить] Вот 10 золотых за проход",
+          "next": "guard_bribed",
+          "conditions": {
+            "variables": {
+              "gold": {
+                "op": ">=",
+                "value": 10
+              }
+            }
+          },
+          "effects": {
+            "variables": {
+              "gold": {
+                "op": "+=",
+                "value": -10
+              },
+              "reputation": {
+                "op": "+=",
+                "value": -1
+              }
+            },
+            "flags": [
+              "bribed_guard"
+            ]
+          }
+        }
+      ],
+      "effects": {},
+      "conditions": {},
+      "autoNext": "",
+      "tags": []
+    },
+    {
+      "id": "guard_friendly",
+      "speaker": "guard",
+      "text": "Проходи с миром, путешественник. Дороги стали опасными в последнее время.",
+      "effects": {
+        "variables": {
+          "health": {
+            "op": "+=",
+            "value": 5
+          }
+        }
+      },
+      "autoNext": "town_entrance"
+    },
+    {
+      "id": "guard_hostile",
+      "speaker": "guard",
+      "text": "Дерзкий! За такие слова можешь получить мечом по голове!",
+      "effects": {
+        "variables": {
+          "health": {
+            "op": "+=",
+            "value": -10
+          }
+        },
+        "flags": [
+          "guard_angry"
+        ]
+      },
+      "choices": [
+        {
+          "text": "Извини, погорячился",
+          "next": "guard_apologize",
+          "effects": {
+            "variables": {
+              "reputation": {
+                "op": "+=",
+                "value": 1
+              }
+            }
+          }
+        },
+        {
+          "text": "Попробуй тронь!",
+          "next": "guard_fight"
+        }
+      ]
+    },
+    {
+      "id": "guard_bribed",
+      "speaker": "guard",
+      "text": "Хм... Неплохо. Проходи быстро, и никто ничего не видел.",
+      "autoNext": "town_entrance"
+    },
+    {
+      "id": "town_entrance",
+      "title": "Вход в город",
+      "text": "Вы входите в шумный торговый город. На площади множество торговцев.",
+      "choices": [
+        {
+          "text": "Подойти к торговцу",
+          "next": "merchant_encounter"
+        },
+        {
+          "text": "Пойти в таверну",
+          "next": "tavern_entrance"
+        },
+        {
+          "text": "Посетить лавку алхимика",
+          "next": "alchemist_shop",
+          "conditions": {
+            "variables": {
+              "gold": {
+                "op": ">=",
+                "value": 20
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "merchant_encounter",
+      "speaker": "merchant",
+      "text": "Добро пожаловать! У меня лучшие товары в городе!",
+      "conditions": {
+        "not_flags": [
+          "merchant_met"
+        ]
+      },
+      "effects": {
+        "flags": [
+          "merchant_met"
+        ]
+      },
+      "choices": [
+        {
+          "text": "Что у тебя есть?",
+          "next": "merchant_shop"
+        },
+        {
+          "text": "Мне нужна информация",
+          "next": "merchant_info"
+        }
+      ]
+    }
+  ]
+}
