@@ -1,5 +1,3 @@
-import Phaser from 'phaser';
-
 /**
  * DialogUIManager - Manages the UI components for the dialog system
  * This class handles the creation, display, and interaction with dialog UI elements

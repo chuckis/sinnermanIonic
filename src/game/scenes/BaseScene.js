@@ -69,8 +69,6 @@ export default class BaseScene extends Phaser.Scene {
 
     create() {
 
-        this.scene.get('ParentScene').resize();
-
         this.setupManagers();
         this.setupPathfinding();
         this.createGameObjects();
@@ -79,6 +77,7 @@ export default class BaseScene extends Phaser.Scene {
         // Initialize dialog system and UI
         this.initializeDialogSystem();
         const dialogData = this.cache.json.get('dialogs');
+        console.log(dialogData);
         this.dialogSystem.loadDialogData(dialogData);
     }
 

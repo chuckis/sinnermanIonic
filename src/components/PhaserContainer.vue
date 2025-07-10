@@ -2,6 +2,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { IonButton } from '@ionic/vue';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+//@ts-expect-error
 import { launch } from '@/game/game.js';
 
 // binds to the v-if on our button to toggle visibility
