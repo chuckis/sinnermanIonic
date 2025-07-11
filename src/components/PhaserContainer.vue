@@ -5,16 +5,19 @@ import { IonButton } from '@ionic/vue';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-expect-error
 import { launch } from '@/game/game.js';
+import {Game} from "phaser";
 
 // binds to the v-if on our button to toggle visibility
-const showButton = ref(true)
+const showButton = ref(true);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let gameInstance: Game;
 
 function handleClickStart() {
   // hides launch button
   showButton.value = false;
 
   // Runs the launch function
-  launch();
+  gameInstance = launch();
 }
 </script>
 

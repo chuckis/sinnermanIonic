@@ -8,6 +8,7 @@ import VisualFeedbackManager from '../managers/VisualFeedbackManager';
 import Utils from '../Utils';
 import DialogSystem from '../managers/DialogSystem';
 import DialogUIManager from '../managers/DialogUIManager';
+import { gameState } from "../state.js";
 
 export default class BaseScene extends Phaser.Scene {
     constructor() {
@@ -64,10 +65,13 @@ export default class BaseScene extends Phaser.Scene {
             frameHeight: 48
         });
         this.load.json('dialogs', 'dialogs/example-dialog.json');
-
     }
 
     create() {
+
+        // sets game values based on screen size
+        gameState.screen.width = this.scale.width;
+        gameState.screen.height = this.scale.height;
 
         this.setupManagers();
         this.setupPathfinding();
