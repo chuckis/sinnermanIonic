@@ -12,29 +12,163 @@ export default class DialogUIManager {
     this.scene = scene;
     this.isDialogActive = false;
 
-    // Default configuration
+    // Get game, camera and scene dimensions
+    const game = this.scene.game;
+    const camera = this.scene.cameras.main;
+
+    // Get actual game dimensions (considering scale and device pixel ratio)
+    const gameWidth = game.config.width || game.scale.width;
+    const gameHeight = game.config.height || game.scale.height;
+
+    // Use camera dimensions (which reflect the actual viewport)
+    const sceneWidth = camera.width;
+    const sceneHeight = camera.height;
+
+    // Calculate relative dimensions
+    const defaultWidth = gameWidth * 0.66; // 2/3 width of scene
+    const defaultHeight = gameHeight * 0.25; // 25% of scene height
+
+    // Position at bottom of visible area (considering camera scroll)
+    const defaultX = camera.scrollX; // Left edge of camera view
+    const defaultY = camera.scrollY + sceneHeight - defaultHeight; // Bottom of camera view
+
+    // Default configuration with adaptive values
     this.config = {
-      width: 750,
-      height: 200,
-      x: 400,
-      y: 500,
+      width: defaultWidth,
+      height: defaultHeight,
+      x: defaultX,
+      y: defaultY,
       backgroundColor: 0x000000,
       backgroundAlpha: 0.8,
       borderColor: 0xffffff,
       textColor: '#ffffff',
       speakerColor: '#ffff00',
-      fontSize: '18px',
-      speakerFontSize: '16px',
-      padding: 50,
+      fontSize: Math.max(14, Math.floor(sceneWidth / 50)) + 'px', // Responsive font size
+      speakerFontSize: Math.max(12, Math.floor(sceneWidth / 60)) + 'px',
+      padding: Math.max(20, Math.floor(sceneWidth / 40)), // Responsive padding
+      // Add responsive properties
+      relativeWidth: 1.0, // 100% of scene width
+      relativeHeight: 0.25, // 25% of scene height
+      anchorX: 0, // Left anchor
+      anchorY: 1, // Bottom anchor
       ...config
     };
+
+    // Override with calculated values if relative properties are used
+    if (config.relativeWidth !== undefined) {
+      this.config.width = sceneWidth * config.relativeWidth;
+    }
+    if (config.relativeHeight !== undefined) {
+      this.config.height = sceneHeight * config.relativeHeight;
+    }
+
+    // Calculate position based on anchors
+    const anchorX = config.anchorX !== undefined ? config.anchorX : 0;
+    const anchorY = config.anchorY !== undefined ? config.anchorY : 1;
+
+    this.config.x = camera.scrollX + (sceneWidth * anchorX) - (this.config.width * anchorX);
+    this.config.y = camera.scrollY + (sceneHeight * anchorY) - (this.config.height * anchorY);
+
+    // Store current dialog dimensions for use in other methods
+    this.currentDialogX = this.config.x + this.config.width / 2;
+    this.currentDialogY = this.config.y + this.config.height / 2;
+    this.currentDialogWidth = this.config.width;
+    this.currentDialogHeight = this.config.height;
 
     // Create UI elements
     this.createDialogUI();
 
     // Listen for resize events
-    this.scene.scale.on('resize', this.resize, this);
-    this.resize(); // Initial positioning
+    this.handleResize = this.handleResize.bind(this);
+    game.scale.on('resize', this.handleResize);
+
+    // Initial positioning
+    this.updateDialogLayout();
+  }
+
+  /**
+   * Handle game resize events
+   * @param {Object} gameSize - The new game size
+   */
+  handleResize(gameSize) {
+    const camera = this.scene.cameras.main;
+    const sceneWidth = camera.width;
+    const sceneHeight = camera.height;
+
+    // Recalculate dimensions
+    this.config.width = sceneWidth * (this.config.relativeWidth || 1.0);
+    this.config.height = sceneHeight * (this.config.relativeHeight || 0.25);
+
+    // Update responsive properties
+    this.config.fontSize = Math.max(14, Math.floor(sceneWidth / 50)) + 'px';
+    this.config.speakerFontSize = Math.max(12, Math.floor(sceneWidth / 60)) + 'px';
+    this.config.padding = Math.max(20, Math.floor(sceneWidth / 40));
+
+    // Update position
+    this.updatePosition();
+
+    // Update dialog layout
+    this.updateDialogLayout();
+  }
+
+  /**
+   * Update position based on camera and anchors
+   */
+  updatePosition() {
+    const camera = this.scene.cameras.main;
+    const sceneWidth = camera.width;
+    const sceneHeight = camera.height;
+
+    const anchorX = this.config.anchorX || 0;
+    const anchorY = this.config.anchorY || 1;
+
+    this.config.x = camera.scrollX + (sceneWidth * anchorX) - (this.config.width * anchorX);
+    this.config.y = camera.scrollY + (sceneHeight * anchorY) - (this.config.height * anchorY);
+
+    // Update current dialog position for centered positioning
+    this.currentDialogX = this.config.x + this.config.width / 2;
+    this.currentDialogY = this.config.y + this.config.height / 2;
+    this.currentDialogWidth = this.config.width;
+    this.currentDialogHeight = this.config.height;
+  }
+
+  /**
+   * Updates the dialog layout based on current config
+   */
+  updateDialogLayout() {
+    if (!this.dialogContainer) return;
+
+    // Update dialog background
+    this.dialogBg.setPosition(this.currentDialogX, this.currentDialogY);
+    this.dialogBg.setSize(this.currentDialogWidth, this.currentDialogHeight);
+
+    // Update close button position
+    this.closeButton.setPosition(
+        this.currentDialogX + (this.currentDialogWidth / 2) - 40,
+        this.currentDialogY - (this.currentDialogHeight / 2) + 10
+    );
+
+    // Update dialog text position and wrapping
+    this.dialogText.setPosition(
+        this.currentDialogX - (this.currentDialogWidth / 2) + this.config.padding,
+        this.currentDialogY
+    );
+    this.dialogText.setWordWrapWidth(this.currentDialogWidth - (this.config.padding * 2));
+    this.dialogText.setStyle({
+      fontSize: this.config.fontSize,
+      wordWrap: { width: this.currentDialogWidth - (this.config.padding * 2) }
+    });
+
+    // Update speaker name position
+    this.speakerName.setPosition(
+        this.currentDialogX - (this.currentDialogWidth / 2) + this.config.padding,
+        this.currentDialogY - (this.currentDialogHeight / 2) + 30
+    );
+    this.speakerName.setStyle({ fontSize: this.config.speakerFontSize });
+
+    // Update container position to follow camera
+    this.dialogContainer.setPosition(0, 0);
+    this.dialogContainer.setScrollFactor(0); // UI fixed on screen
   }
 
   /**
@@ -45,30 +179,30 @@ export default class DialogUIManager {
     // Create container for all dialog UI elements
     this.dialogContainer = this.scene.add.container(0, 0);
     this.dialogContainer.setVisible(false);
-    // this.dialogContainer.setScrollFactor(0); // UI fixed on screen
+    this.dialogContainer.setScrollFactor(0); // UI fixed on screen
 
     // Dialog background
     this.dialogBg = this.scene.add.rectangle(
-      this.config.x, 
-      this.config.y, 
-      this.config.width, 
-      this.config.height, 
-      this.config.backgroundColor, 
-      this.config.backgroundAlpha
+        this.currentDialogX,
+        this.currentDialogY,
+        this.currentDialogWidth,
+        this.currentDialogHeight,
+        this.config.backgroundColor,
+        this.config.backgroundAlpha
     );
     this.dialogBg.setStrokeStyle(2, this.config.borderColor);
 
     // Close button
     this.closeButton = this.scene.add.text(
-      this.config.x + (this.config.width / 2) - 40, 
-      this.config.y - (this.config.height / 2) + 10, 
-      '✕', 
-      {
-        fontSize: '24px',
-        fill: '#ffffff',
-        backgroundColor: '#ff0000',
-        padding: { x: 8, y: 4 }
-      }
+        this.currentDialogX + (this.currentDialogWidth / 2) - 40,
+        this.currentDialogY - (this.currentDialogHeight / 2) + 10,
+        '✕',
+        {
+          fontSize: '24px',
+          fill: '#ffffff',
+          backgroundColor: '#ff0000',
+          padding: { x: 8, y: 4 }
+        }
     );
     this.closeButton.setInteractive();
     this.closeButton.on('pointerdown', () => this.endDialog());
@@ -77,27 +211,27 @@ export default class DialogUIManager {
 
     // Dialog text
     this.dialogText = this.scene.add.text(
-      this.config.x - (this.config.width / 2) + this.config.padding, 
-      this.config.y, 
-      '', 
-      {
-        fontSize: this.config.fontSize,
-        fill: this.config.textColor,
-        wordWrap: { width: this.config.width - (this.config.padding * 2) }
-      }
+        this.currentDialogX - (this.currentDialogWidth / 2) + this.config.padding,
+        this.currentDialogY,
+        '',
+        {
+          fontSize: this.config.fontSize,
+          fill: this.config.textColor,
+          wordWrap: { width: this.currentDialogWidth - (this.config.padding * 2) }
+        }
     );
     this.dialogText.setOrigin(0, 0.5);
 
     // Speaker name
     this.speakerName = this.scene.add.text(
-      this.config.x - (this.config.width / 2) + this.config.padding, 
-      this.config.y - (this.config.height / 2) + 30, 
-      '', 
-      {
-        fontSize: this.config.speakerFontSize,
-        fill: this.config.speakerColor,
-        fontStyle: 'bold'
-      }
+        this.currentDialogX - (this.currentDialogWidth / 2) + this.config.padding,
+        this.currentDialogY - (this.currentDialogHeight / 2) + 30,
+        '',
+        {
+          fontSize: this.config.speakerFontSize,
+          fill: this.config.speakerColor,
+          fontStyle: 'bold'
+        }
     );
 
     // Container for choices
@@ -155,28 +289,26 @@ export default class DialogUIManager {
     choices.forEach((choice, index) => {
       const buttonWidth = Math.min(this.currentDialogWidth - 50, 700);
       const button = this.scene.add.rectangle(
-        this.currentDialogX, 
-        this.currentDialogY + (this.currentDialogHeight / 2) + 50 + (index * 40), 
-        buttonWidth, 
-        35, 
-        0x333333, 
-        0.8
+          this.currentDialogX,
+          this.currentDialogY + (this.currentDialogHeight / 2) + 50 + (index * 40),
+          buttonWidth,
+          35,
+          0x333333,
+          0.8
       );
       button.setStrokeStyle(2, 0x666666);
-      button.setScrollFactor(0);
       button.setInteractive();
 
       const buttonText = this.scene.add.text(
-        this.currentDialogX - (buttonWidth / 2) + 20, 
-        this.currentDialogY + (this.currentDialogHeight / 2) + 50 + (index * 40), 
-        choice.text, 
-        {
-          fontSize: '16px',
-          fill: '#ffffff',
-          wordWrap: { width: buttonWidth - 40 }
-        }
+          this.currentDialogX - (buttonWidth / 2) + 20,
+          this.currentDialogY + (this.currentDialogHeight / 2) + 50 + (index * 40),
+          choice.text,
+          {
+            fontSize: Math.max(12, Math.floor(this.currentDialogWidth / 60)) + 'px',
+            fill: '#ffffff',
+            wordWrap: { width: buttonWidth - 40 }
+          }
       );
-      buttonText.setScrollFactor(0);
       buttonText.setOrigin(0, 0.5);
 
       // Hover effects
@@ -210,28 +342,26 @@ export default class DialogUIManager {
    */
   showContinueButton(autoNext) {
     const button = this.scene.add.rectangle(
-      this.currentDialogX, 
-      this.currentDialogY + (this.currentDialogHeight / 2) + 50, 
-      300, 
-      35, 
-      0x004400, 
-      0.8
+        this.currentDialogX,
+        this.currentDialogY + (this.currentDialogHeight / 2) + 50,
+        300,
+        35,
+        0x004400,
+        0.8
     );
     button.setStrokeStyle(2, 0x008800);
-    button.setScrollFactor(0);
     button.setInteractive();
 
     const buttonText = this.scene.add.text(
-      this.currentDialogX, 
-      this.currentDialogY + (this.currentDialogHeight / 2) + 50, 
-      'Продолжить', 
-      {
-        fontSize: '16px',
-        fill: '#ffffff',
-        fontStyle: 'bold'
-      }
+        this.currentDialogX,
+        this.currentDialogY + (this.currentDialogHeight / 2) + 50,
+        'Продолжить',
+        {
+          fontSize: Math.max(12, Math.floor(this.currentDialogWidth / 60)) + 'px',
+          fill: '#ffffff',
+          fontStyle: 'bold'
+        }
     );
-    buttonText.setScrollFactor(0);
     buttonText.setOrigin(0.5, 0.5);
 
     // Hover effects
@@ -304,46 +434,11 @@ export default class DialogUIManager {
 
   /**
    * Resizes and repositions dialog UI elements based on the game window size
+   * @deprecated Use handleResize instead
    */
-  resize() {
-    const gameWidth = this.scene.scale.width;
-    const gameHeight = this.scene.scale.height;
-
-    // Calculate new position and size based on game dimensions
-    const dialogWidth = Math.min(gameWidth * 0.8, this.config.width);
-    const dialogHeight = Math.min(gameHeight * 0.3, this.config.height);
-    const dialogX = gameWidth / 2;
-    const dialogY = gameHeight - dialogHeight / 2 - 20; // Position at bottom with some padding
-
-    // Update dialog background
-    this.dialogBg.setPosition(dialogX, dialogY);
-    this.dialogBg.setSize(dialogWidth, dialogHeight);
-
-    // Update close button position
-    this.closeButton.setPosition(
-      dialogX + (dialogWidth / 2) - 40,
-      dialogY - (dialogHeight / 2) + 10
-    );
-
-    // Update dialog text position and wrapping
-    this.dialogText.setPosition(
-      dialogX - (dialogWidth / 2) + this.config.padding,
-      dialogY
-    );
-    this.dialogText.setWordWrapWidth(dialogWidth - (this.config.padding * 2));
-
-    // Update speaker name position
-    this.speakerName.setPosition(
-      dialogX - (dialogWidth / 2) + this.config.padding,
-      dialogY - (dialogHeight / 2) + 30
-    );
-
-    // Store updated values for other methods to use
-    this.currentDialogX = dialogX;
-    this.currentDialogY = dialogY;
-    this.currentDialogWidth = dialogWidth;
-    this.currentDialogHeight = dialogHeight;
-  }
+  // handleResize() {
+  //   this.handleResize();
+  // }
 
   /**
    * Cleans up resources when the dialog UI is no longer needed
@@ -352,7 +447,12 @@ export default class DialogUIManager {
     if (this.escKeyHandler) {
       this.escKeyHandler.removeAllListeners();
     }
-    this.scene.scale.off('resize', this.resize, this);
+
+    // Clean up resize handler
+    if (this.scene.game.scale) {
+      this.scene.game.scale.off('resize', this.handleResize);
+    }
+
     this.dialogContainer.destroy();
   }
 }

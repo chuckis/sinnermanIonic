@@ -7,7 +7,6 @@ import GridManager from '../managers/GridManager';
 import VisualFeedbackManager from '../managers/VisualFeedbackManager';
 import Utils from '../Utils';
 import DialogSystem from '../managers/DialogSystem';
-import DialogUIManager from '../managers/DialogUIManager';
 import { gameState } from "../state.js";
 
 export default class BaseScene extends Phaser.Scene {
@@ -15,24 +14,6 @@ export default class BaseScene extends Phaser.Scene {
         super({ key: 'BaseScene' });
         this.initializeProperties();
         this.dialogSystem = new DialogSystem();
-    }
-
-    /**
-     * Initializes the dialog system and UI manager
-     * Can be overridden by child classes to customize dialog behavior
-     */
-    initializeDialogSystem() {
-        // Create dialog UI manager
-        this.dialogUI = new DialogUIManager(this);
-
-        // Set up callbacks
-        this.dialogUI.setChoiceCallback(this.makeChoice.bind(this));
-        this.dialogUI.setContinueCallback(this.continueDialog.bind(this));
-        this.dialogUI.setEndCallback(() => {
-            this.isDialogActive = false;
-            this.hasStartedDialogue = false;
-            this.dialogSystem.currentDialog = null;
-        });
     }
 
     initializeProperties() {
@@ -52,6 +33,8 @@ export default class BaseScene extends Phaser.Scene {
         this.npc = null;
         this.dialogue = null;
 
+        // Dialog state
+        this.isDialogActive = false;
         this.hasStartedDialogue = false;
         this.dialogueDelay = 1000; // 1 second delay before starting dialogue
         this.dialogueTimer = null;
@@ -64,11 +47,10 @@ export default class BaseScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 48
         });
-        this.load.json('dialogs', 'dialogs/example-dialog.json');
+        this.load.json('dialogs', './assets/dialogs/example-dialog.json');
     }
 
     create() {
-
         // sets game values based on screen size
         gameState.screen.width = this.scale.width;
         gameState.screen.height = this.scale.height;
@@ -78,11 +60,69 @@ export default class BaseScene extends Phaser.Scene {
         this.createGameObjects();
         this.setupGameSystems();
 
-        // Initialize dialog system and UI
+        // Initialize dialog system
         this.initializeDialogSystem();
+
+        // Launch DialogUIScene as a child scene
+        this.scene.launch('DialogUIScene', {
+            parentScene: this,
+            config: {
+                relativeWidth: 0.7,
+                relativeHeight: 0.2,
+                anchorX: 0.1,
+                anchorY: 0.7
+            }
+        });
+
+        // Load dialog data
         const dialogData = this.cache.json.get('dialogs');
-        console.log(dialogData);
         this.dialogSystem.loadDialogData(dialogData);
+    }
+
+    /**
+     * Initializes the dialog system with event handlers
+     */
+    initializeDialogSystem() {
+        this.setupDialogEventHandlers();
+    }
+
+    /**
+     * Sets up event handlers for dialog system communication
+     */
+    setupDialogEventHandlers() {
+        // Listen for dialog events from DialogUIScene
+        this.game.events.on('dialog-shown', (dialogData) => {
+            this.pauseGame();
+        });
+
+        this.game.events.on('dialog-choice-selected', (choiceIndex) => {
+            this.handleDialogChoice(choiceIndex);
+        });
+
+        this.game.events.on('dialog-continue', () => {
+            this.continueDialog();
+        });
+
+        this.game.events.on('dialog-ended', () => {
+            this.resumeGame();
+        });
+    }
+
+    /**
+     * Pauses the game when dialog is active
+     */
+    pauseGame() {
+        this.isDialogActive = true;
+        // Additional pause logic can be added here
+    }
+
+    /**
+     * Resumes the game when dialog ends
+     */
+    resumeGame() {
+        this.isDialogActive = false;
+        this.hasStartedDialogue = false;
+        this.dialogSystem.currentDialog = null;
     }
 
     // #region Setup Methods
@@ -113,7 +153,6 @@ export default class BaseScene extends Phaser.Scene {
     // #endregion
 
     // #region Input Handling
-    // Упрощаем обработку клавиатуры - оставляем только ESC для закрытия
     setupInput() {
         this.input.on('pointerdown', this.handleClick.bind(this));
         this.input.keyboard.on('keydown-ESC', this.handleEscKey.bind(this));
@@ -152,14 +191,6 @@ export default class BaseScene extends Phaser.Scene {
     }
     // #endregion
 
-    // Убираем старые обработчики клавиш
-    handleSpaceKey(event) {
-        // Убираем обработку Space для диалогов
-        if (this.npc && this.npc.canInteract && !this.isDialogActive) {
-            this.npc.interact();
-        }
-    }
-
     // #region Game Logic
     findPath(targetPos) {
         const npcGridX = Math.floor(this.npc.x / this.tileSize);
@@ -187,7 +218,7 @@ export default class BaseScene extends Phaser.Scene {
             return;
         }
 
-        const hasObstacle = path.some(point => 
+        const hasObstacle = path.some(point =>
             this.gridManager.grid[point.y][point.x] === 1
         );
 
@@ -200,8 +231,11 @@ export default class BaseScene extends Phaser.Scene {
     }
     // #endregion
 
-
     update() {
+        if (this.dialog) {
+            this.dialog.updatePosition();
+        }
+
         this.visualFeedback.updateHighlightTile(this.hero.getGridPosition());
         if (this.npc) {
             this.npc.update();
@@ -229,7 +263,6 @@ export default class BaseScene extends Phaser.Scene {
             this.hasStartedDialogue = false; // Reset dialogue state when not neighbors
             this.npc.setAlpha(0.7); // Set to less opaque when not neighbor
         }
-
     }
 
     cancelDialogueTimer() {
@@ -267,7 +300,7 @@ export default class BaseScene extends Phaser.Scene {
         });
     }
 
-    // Dialog methods are now handled by DialogUIManager
+    // #region Dialog Methods
 
     /**
      * Starts a dialog with the given ID
@@ -276,8 +309,8 @@ export default class BaseScene extends Phaser.Scene {
     startDialog(dialogId) {
         const dialogData = this.dialogSystem.startDialog(dialogId);
         if (dialogData) {
-            this.isDialogActive = true; // Block movement
-            this.dialogUI.showDialog(dialogData);
+            // Emit event to DialogUIScene to show dialog
+            this.game.events.emit('show-dialog', dialogData);
         }
     }
 
@@ -285,11 +318,11 @@ export default class BaseScene extends Phaser.Scene {
      * Handles a choice selection in the dialog
      * @param {number} choiceIndex - The index of the selected choice
      */
-    makeChoice(choiceIndex) {
+    handleDialogChoice(choiceIndex) {
         console.log(`Making choice: ${choiceIndex}`);
         const nextDialog = this.dialogSystem.makeChoice(choiceIndex);
         if (nextDialog) {
-            this.dialogUI.showDialog(nextDialog);
+            this.game.events.emit('show-dialog', nextDialog);
         } else {
             this.endDialog();
         }
@@ -301,7 +334,7 @@ export default class BaseScene extends Phaser.Scene {
     continueDialog() {
         const nextDialog = this.dialogSystem.continueDialog();
         if (nextDialog) {
-            this.dialogUI.showDialog(nextDialog);
+            this.game.events.emit('show-dialog', nextDialog);
         } else {
             this.endDialog();
         }
@@ -311,6 +344,21 @@ export default class BaseScene extends Phaser.Scene {
      * Ends the current dialog
      */
     endDialog() {
-        this.dialogUI.endDialog();
+        this.game.events.emit('hide-dialog');
+    }
+
+    // #endregion
+
+    /**
+     * Cleanup method - removes event listeners
+     */
+    destroy() {
+        // Remove event listeners to prevent memory leaks
+        this.game.events.off('dialog-shown');
+        this.game.events.off('dialog-choice-selected');
+        this.game.events.off('dialog-continue');
+        this.game.events.off('dialog-ended');
+
+        super.destroy();
     }
 }

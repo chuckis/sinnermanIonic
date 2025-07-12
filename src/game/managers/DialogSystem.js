@@ -10,6 +10,9 @@ export default class DialogSystem {
 
   // Загрузка диалогов из JSON
   loadDialogData(data) {
+    if (!data) return;
+    if (!data.dialogs) return;
+    if (!data.characters) return;
     // Загружаем персонажей
     if (data.characters) {
       Object.entries(data.characters).forEach(([id, character]) => {
