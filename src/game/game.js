@@ -4,7 +4,8 @@ import {Preloader} from "@/game/scenes/Preloader.js";
 
 import {GameOver} from "@/game/scenes/GameOver.js";
 import BaseScene from "@/game/scenes/BaseScene.js";
-import DialogUIScene from "@/game/scenes/DialogUiScene.js";
+import {DialogUIScene} from "@/game/scenes/DialogUiScene.js";
+import {HudScene} from "@/game/scenes/HudScene.js";
 
 export function launch() {
     return new Game({
@@ -24,7 +25,8 @@ export function launch() {
                 Preloader,
                 GameOver,
                 BaseScene,
-                DialogUIScene
+                DialogUIScene,
+                HudScene,
             ]
         }
     )

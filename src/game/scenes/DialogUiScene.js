@@ -1,107 +1,69 @@
-import { Scene } from 'phaser';
+import BaseUIScene from "@/game/scenes/BaseUiScene.js";
 /**
- * DialogUIScene - A dedicated scene for handling dialog UI
- * This scene can be launched as a nested scene within BaseScene
+ * DialogUIScene - Specialized scene for handling dialog UI
  */
-export default class DialogUIScene extends Scene {
+export class DialogUIScene extends BaseUIScene {
     constructor() {
-        super({ key: 'DialogUIScene' });
+        super('DialogUIScene');
     }
 
-    /**
-     * Initialize the scene with configuration data
-     * @param {Object} data - Configuration and parent scene reference
-     */
-    init(data) {
-        this.parentScene = data.parentScene;
-        this.isDialogActive = false;
-
-        // Configuration with defaults
-        this.config = {
+    getDefaultConfig() {
+        return {
+            ...super.getDefaultConfig(),
             relativeWidth: 0.66,
             relativeHeight: 0.25,
-            anchorX: 0.5, // Center horizontally
-            anchorY: 1,   // Bottom anchor
-            backgroundColor: 0x000000,
-            backgroundAlpha: 0.8,
-            borderColor: 0xffffff,
-            textColor: '#ffffff',
+            anchorX: 0.5,
+            anchorY: 1,
             speakerColor: '#ffff00',
-            padding: 20,
-            ...data.config
+            // Add responsive choice button configuration
+            choiceButtonSpacing: 0.05, // 5% of container height
+            choiceButtonHeight: 0.12,  // 12% of container height
+            choiceButtonMinHeight: 30,
+            choiceButtonMaxHeight: 50,
+            choiceButtonPadding: 0.02  // 2% of container width
         };
+    }
 
+    initializeSceneData(data) {
         // Callbacks
         this.onChoiceSelected = null;
         this.onContinue = null;
         this.onDialogEnd = null;
     }
 
-    /**
-     * Create the dialog UI elements
-     */
-    create() {
-        // Calculate initial dimensions and position
-        this.updateDimensions();
-
-        // Create UI elements
-        this.createDialogUI();
-
-        // Set up event listeners
-        this.setupEventListeners();
-
-        // Initially hide the dialog
-        this.dialogContainer.setVisible(false);
-
-        // Set up resize handling
-        this.scale.on('resize', this.handleResize, this);
+    getUIDepth() {
+        return 1000;
     }
 
-    /**
-     * Update dialog dimensions based on current camera/screen size
-     */
-    updateDimensions() {
-        const camera = this.cameras.main;
-        const sceneWidth = camera.width;
-        const sceneHeight = camera.height;
-
-        // Calculate responsive dimensions
-        this.dialogWidth = sceneWidth * this.config.relativeWidth;
-        this.dialogHeight = sceneHeight * this.config.relativeHeight;
-
-        // Calculate position based on anchors
-        this.dialogX = (sceneWidth * this.config.anchorX);
-        this.dialogY = (sceneHeight * this.config.anchorY) - (this.dialogHeight * this.config.anchorY);
-
-        // Update responsive properties
-        this.fontSize = Math.max(14, Math.floor(sceneWidth / 50));
+    updateResponsiveProperties(sceneWidth, sceneHeight) {
+        super.updateResponsiveProperties(sceneWidth, sceneHeight);
         this.speakerFontSize = Math.max(12, Math.floor(sceneWidth / 60));
-        this.padding = Math.max(20, Math.floor(sceneWidth / 40));
+
+        // Calculate responsive choice button properties
+        this.choiceButtonSpacing = Math.max(10, this.uiHeight * this.config.choiceButtonSpacing);
+        this.choiceButtonHeight = Math.max(
+            this.config.choiceButtonMinHeight,
+            Math.min(
+                this.config.choiceButtonMaxHeight,
+                this.uiHeight * this.config.choiceButtonHeight
+            )
+        );
+        this.choiceButtonPadding = this.uiWidth * this.config.choiceButtonPadding;
+        this.choiceButtonWidth = this.uiWidth - (this.choiceButtonPadding * 2);
+        this.choiceButtonFontSize = Math.max(12, Math.floor(this.uiWidth / 60));
     }
 
-    /**
-     * Create all dialog UI elements
-     */
-    createDialogUI() {
-        // Create container for all dialog UI elements
-        this.dialogContainer = this.add.container(0, 0);
-        this.dialogContainer.setDepth(1000);
+    createUI() {
+        super.createUI();
+        this.createDialogElements();
+        this.uiContainer.setVisible(false);
+    }
 
-        // Dialog background
-        this.dialogBg = this.add.rectangle(
-            this.dialogX + this.dialogWidth / 2,
-            this.dialogY + this.dialogHeight / 2,
-            this.dialogWidth,
-            this.dialogHeight,
-            this.config.backgroundColor,
-            this.config.backgroundAlpha
-        );
-        this.dialogBg.setStrokeStyle(2, this.config.borderColor);
-
+    createDialogElements() {
         // Close button
         this.closeButton = this.add.text(
-            this.dialogX + this.dialogWidth - 40,
-            this.dialogY + 10,
+            this.uiX + this.uiWidth - 40,
+            this.uiY + 10,
             '✕',
             {
                 fontSize: '24px',
@@ -117,8 +79,8 @@ export default class DialogUIScene extends Scene {
 
         // Speaker name
         this.speakerName = this.add.text(
-            this.dialogX + this.padding,
-            this.dialogY + 30,
+            this.uiX + this.padding,
+            this.uiY + 30,
             '',
             {
                 fontSize: this.speakerFontSize + 'px',
@@ -129,13 +91,13 @@ export default class DialogUIScene extends Scene {
 
         // Dialog text
         this.dialogText = this.add.text(
-            this.dialogX + this.padding,
-            this.dialogY + this.dialogHeight / 2,
+            this.uiX + this.padding,
+            this.uiY + this.uiHeight / 2,
             '',
             {
                 fontSize: this.fontSize + 'px',
                 fill: this.config.textColor,
-                wordWrap: { width: this.dialogWidth - (this.padding * 2) }
+                wordWrap: { width: this.uiWidth - (this.padding * 2) }
             }
         );
         this.dialogText.setOrigin(0, 0.5);
@@ -143,85 +105,93 @@ export default class DialogUIScene extends Scene {
         // Container for choices
         this.choicesContainer = this.add.container(0, 0);
 
-        // Add all elements to the main container
-        this.dialogContainer.add([
-            this.dialogBg,
+        // Add elements to container
+        this.uiContainer.add([
             this.closeButton,
-            this.dialogText,
             this.speakerName,
+            this.dialogText,
             this.choicesContainer
         ]);
     }
 
-    /**
-     * Set up event listeners for scene communication
-     */
     setupEventListeners() {
-        // Listen for dialog events from parent scene
-        this.game.events.on('show-dialog', this.showDialog, this);
-        this.game.events.on('hide-dialog', this.endDialog, this);
+        super.setupEventListeners();
+        this.addEventListener('show-dialog', this.showDialog);
+        this.addEventListener('hide-dialog', this.endDialog);
 
         // ESC key to close dialog
         this.input.keyboard.on('keydown-ESC', () => {
-            if (this.isDialogActive) {
+            if (this.isActive) {
                 this.endDialog();
             }
         });
     }
 
-    /**
-     * Handle resize events
-     */
-    handleResize() {
-        this.updateDimensions();
-        this.updateDialogLayout();
-    }
-
-    /**
-     * Update dialog layout based on current dimensions
-     */
-    updateDialogLayout() {
-        if (!this.dialogContainer) return;
-
-        // Update dialog background
-        this.dialogBg.setPosition(
-            this.dialogX + this.dialogWidth / 2,
-            this.dialogY + this.dialogHeight / 2
-        );
-        this.dialogBg.setSize(this.dialogWidth, this.dialogHeight);
+    updateLayout() {
+        super.updateLayout();
+        if (!this.closeButton) return;
 
         // Update close button position
         this.closeButton.setPosition(
-            this.dialogX + this.dialogWidth - 40,
-            this.dialogY + 10
+            this.uiX + this.uiWidth - 40,
+            this.uiY + 10
         );
 
         // Update speaker name position
         this.speakerName.setPosition(
-            this.dialogX + this.padding,
-            this.dialogY + 30
+            this.uiX + this.padding,
+            this.uiY + 30
         );
         this.speakerName.setStyle({ fontSize: this.speakerFontSize + 'px' });
 
         // Update dialog text position and wrapping
         this.dialogText.setPosition(
-            this.dialogX + this.padding,
-            this.dialogY + this.dialogHeight / 2
+            this.uiX + this.padding,
+            this.uiY + this.uiHeight / 2
         );
-        this.dialogText.setWordWrapWidth(this.dialogWidth - (this.padding * 2));
+        this.dialogText.setWordWrapWidth(this.uiWidth - (this.padding * 2));
         this.dialogText.setStyle({
             fontSize: this.fontSize + 'px',
-            wordWrap: { width: this.dialogWidth - (this.padding * 2) }
+            wordWrap: { width: this.uiWidth - (this.padding * 2) }
+        });
+
+        // Update choice buttons if they exist
+        this.updateChoiceButtonsLayout();
+    }
+
+    updateChoiceButtonsLayout() {
+        if (!this.choicesContainer || this.choicesContainer.list.length === 0) return;
+
+        // Recalculate button positions and sizes
+        const buttons = this.choicesContainer.list;
+        const buttonPairs = [];
+
+        // Group buttons and texts in pairs
+        for (let i = 0; i < buttons.length; i += 2) {
+            buttonPairs.push({
+                button: buttons[i],
+                text: buttons[i + 1]
+            });
+        }
+
+        buttonPairs.forEach((pair, index) => {
+            const buttonY = this.uiY + this.uiHeight + this.choiceButtonSpacing + (index * (this.choiceButtonHeight + this.choiceButtonSpacing));
+
+            // Update button
+            pair.button.setPosition(this.uiX + this.uiWidth / 2, buttonY);
+            pair.button.setSize(this.choiceButtonWidth, this.choiceButtonHeight);
+
+            // Update text
+            pair.text.setPosition(this.uiX + this.uiWidth / 2, buttonY);
+            pair.text.setStyle({
+                fontSize: this.choiceButtonFontSize + 'px',
+                wordWrap: { width: this.choiceButtonWidth - 40 }
+            });
         });
     }
 
-    /**
-     * Show dialog with provided data
-     * @param {Object} dialogData - Dialog data to display
-     */
     showDialog(dialogData) {
-        this.isDialogActive = true;
-        this.dialogContainer.setVisible(true);
+        this.show();
 
         // Set text content
         this.dialogText.setText(dialogData.text);
@@ -237,24 +207,18 @@ export default class DialogUIScene extends Scene {
             this.showContinueButton(dialogData.autoNext);
         }
 
-        // Emit event to parent scene
         this.game.events.emit('dialog-shown', dialogData);
     }
 
-    /**
-     * Show choice buttons
-     * @param {Array} choices - Array of choice objects
-     */
     showChoices(choices) {
         choices.forEach((choice, index) => {
-            const buttonWidth = Math.min(this.dialogWidth - 50, 700);
-            const buttonY = this.dialogY + this.dialogHeight + 20 + (index * 40);
+            const buttonY = this.uiY + this.uiHeight + this.choiceButtonSpacing + (index * (this.choiceButtonHeight + this.choiceButtonSpacing));
 
             const button = this.add.rectangle(
-                this.dialogX + this.dialogWidth / 2,
+                this.uiX + this.uiWidth / 2,
                 buttonY,
-                buttonWidth,
-                35,
+                this.choiceButtonWidth,
+                this.choiceButtonHeight,
                 0x333333,
                 0.8
             );
@@ -262,13 +226,13 @@ export default class DialogUIScene extends Scene {
             button.setInteractive();
 
             const buttonText = this.add.text(
-                this.dialogX + this.dialogWidth / 2,
+                this.uiX + this.uiWidth / 2,
                 buttonY,
                 choice.text,
                 {
-                    fontSize: Math.max(12, Math.floor(this.dialogWidth / 60)) + 'px',
+                    fontSize: this.choiceButtonFontSize + 'px',
                     fill: '#ffffff',
-                    wordWrap: { width: buttonWidth - 40 }
+                    wordWrap: { width: this.choiceButtonWidth - 40 }
                 }
             );
             buttonText.setOrigin(0.5, 0.5);
@@ -286,7 +250,6 @@ export default class DialogUIScene extends Scene {
                 buttonText.setStyle({ fill: '#ffffff' });
             });
 
-            // Click handler
             button.on('pointerdown', () => {
                 this.handleChoiceSelected(index);
             });
@@ -295,18 +258,14 @@ export default class DialogUIScene extends Scene {
         });
     }
 
-    /**
-     * Show continue button
-     * @param {boolean} autoNext - Whether dialog should auto-advance
-     */
     showContinueButton(autoNext) {
-        const buttonY = this.dialogY + this.dialogHeight + 20;
+        const buttonY = this.uiY + this.uiHeight + this.choiceButtonSpacing;
 
         const button = this.add.rectangle(
-            this.dialogX + this.dialogWidth / 2,
+            this.uiX + this.uiWidth / 2,
             buttonY,
-            300,
-            35,
+            Math.min(this.choiceButtonWidth, 300), // Cap continue button width
+            this.choiceButtonHeight,
             0x004400,
             0.8
         );
@@ -314,11 +273,11 @@ export default class DialogUIScene extends Scene {
         button.setInteractive();
 
         const buttonText = this.add.text(
-            this.dialogX + this.dialogWidth / 2,
+            this.uiX + this.uiWidth / 2,
             buttonY,
             'Продолжить',
             {
-                fontSize: Math.max(12, Math.floor(this.dialogWidth / 60)) + 'px',
+                fontSize: this.choiceButtonFontSize + 'px',
                 fill: '#ffffff',
                 fontStyle: 'bold'
             }
@@ -338,7 +297,6 @@ export default class DialogUIScene extends Scene {
             buttonText.setStyle({ fill: '#ffffff' });
         });
 
-        // Click handler
         button.on('pointerdown', () => {
             this.handleContinue();
         });
@@ -346,81 +304,36 @@ export default class DialogUIScene extends Scene {
         this.choicesContainer.add([button, buttonText]);
     }
 
-    /**
-     * Handle choice selection
-     * @param {number} choiceIndex - Index of selected choice
-     */
     handleChoiceSelected(choiceIndex) {
-        // Emit event to parent scene
         this.game.events.emit('dialog-choice-selected', choiceIndex);
-
-        // Call callback if set
         if (this.onChoiceSelected) {
             this.onChoiceSelected(choiceIndex);
         }
     }
 
-    /**
-     * Handle continue button click
-     */
     handleContinue() {
-        // Emit event to parent scene
         this.game.events.emit('dialog-continue');
-
-        // Call callback if set
         if (this.onContinue) {
             this.onContinue();
         }
     }
 
-    /**
-     * End the dialog
-     */
     endDialog() {
-        this.isDialogActive = false;
-        this.dialogContainer.setVisible(false);
+        this.hide();
         this.choicesContainer.removeAll(true);
-
-        // Emit event to parent scene
         this.game.events.emit('dialog-ended');
-
-        // Call callback if set
         if (this.onDialogEnd) {
             this.onDialogEnd();
         }
     }
 
-    /**
-     * Set callback functions
-     */
-    setChoiceCallback(callback) {
-        this.onChoiceSelected = callback;
+    onHide() {
+        super.onHide();
+        this.choicesContainer.removeAll(true);
     }
 
-    setContinueCallback(callback) {
-        this.onContinue = callback;
-    }
-
-    setEndCallback(callback) {
-        this.onDialogEnd = callback;
-    }
-
-    /**
-     * Check if dialog is active
-     */
-    isActive() {
-        return this.isDialogActive;
-    }
-
-    /**
-     * Clean up when scene is destroyed
-     */
-    destroy() {
-        // Remove event listeners
-        this.game.events.off('show-dialog', this.showDialog, this);
-        this.game.events.off('hide-dialog', this.endDialog, this);
-        this.scale.off('resize', this.handleResize, this);
-
-        super.destroy();
-    }
+    // Callback setters
+    setChoiceCallback(callback) { this.onChoiceSelected = callback; }
+    setContinueCallback(callback) { this.onContinue = callback; }
+    setEndCallback(callback) { this.onDialogEnd = callback; }
 }

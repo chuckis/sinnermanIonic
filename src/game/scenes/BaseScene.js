@@ -74,6 +74,16 @@ export default class BaseScene extends Phaser.Scene {
             }
         });
 
+        this.scene.launch('Hud', {
+            parentScene: this,
+            config: {
+                relativeWidth: 0.8,
+                relativeHeight: 0.15,
+                anchorX: 0.02,
+                anchorY: 0.02
+            }
+        });
+
         // Load dialog data
         const dialogData = this.cache.json.get('dialogs');
         this.dialogSystem.loadDialogData(dialogData);
@@ -106,6 +116,25 @@ export default class BaseScene extends Phaser.Scene {
         this.game.events.on('dialog-ended', () => {
             this.resumeGame();
         });
+    }
+
+//
+// // Update HUD data
+// this.game.events.emit('update-health', 75, 100);
+// this.game.events.emit('update-gold', 250);
+// this.game.events.emit('update-power', 30, 50);
+//
+// // Or update multiple values at once
+// this.game.events.emit('update-hud', {
+//     health: 75,
+//     gold: 250,
+//     power: 30,
+//     level: 5,
+//     experience: 150
+// });
+
+    setupHudEventHandlers() {
+
     }
 
     /**
@@ -233,7 +262,8 @@ export default class BaseScene extends Phaser.Scene {
 
     update() {
         if (this.dialog) {
-            this.dialog.updatePosition();
+            // this.dialog.updatePosition();
+            this.dialog.updateLayout();
         }
 
         this.visualFeedback.updateHighlightTile(this.hero.getGridPosition());
