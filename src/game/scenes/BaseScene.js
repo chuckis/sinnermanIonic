@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import EasyStar from 'easystarjs';
 import NPC from '../entities/NPC';
-import Dialogue from '../entities/Dialogue';
 import Hero from '../entities/Hero';
 import GridManager from '../managers/GridManager';
 import VisualFeedbackManager from '../managers/VisualFeedbackManager';
@@ -31,7 +30,6 @@ export default class BaseScene extends Phaser.Scene {
         // Game objects
         this.hero = null;
         this.npc = null;
-        this.dialogue = null;
 
         // Dialog state
         this.isDialogActive = false;
@@ -171,7 +169,7 @@ export default class BaseScene extends Phaser.Scene {
         this.createAnimations();
         this.hero = new Hero(this, 0, 0, 'hero');
         this.npc = new NPC(this, 8 * this.tileSize + this.tileSize/2, 2 * this.tileSize + this.tileSize/2, 'dummy');
-        this.dialogue = new Dialogue(this);
+        // this.dialogue = new Dialogue(this);
     }
 
     setupGameSystems() {

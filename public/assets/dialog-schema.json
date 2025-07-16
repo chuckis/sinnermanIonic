@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dialog System Schema",
+  "type": "object",
+  "properties": {
+    "dialogs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Dialog"
+      }
+    },
+    "characters": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "#/definitions/Character"
+        }
+      }
+    },
+    "globalVariables": {
+      "type": "object",
+      "description": "Глобальные переменные игры"
+    }
+  },
+  "required": ["dialogs"],
+  "definitions": {
+    "Dialog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Уникальный ID диалога"
+        },
+        "title": {
+          "type": "string",
+          "description": "Название диалога для удобства"
+        },
+        "speaker": {
+          "type": "string",
+          "description": "ID персонажа или имя говорящего"
+        },
+        "text": {
+          "type": "string",
+          "description": "Текст диалога"
+        },
+        "conditions": {
+          "$ref": "#/definitions/Conditions",
+          "description": "Условия для показа этого диалога"
+        },
+        "effects": {
+          "$ref": "#/definitions/Effects",
+          "description": "Эффекты, применяемые при показе диалога"
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Choice"
+          },
+          "description": "Варианты выбора"
+        },
+        "autoNext": {
+          "type": "string",
+          "description": "ID следующего диалога (если нет выборов)"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Теги для организации диалогов"
+        }
+      },
+      "required": ["id", "text"],
+      "additionalProperties": false
+    },
+    "Choice": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Текст варианта выбора"
+        },
+        "next": {
+          "type": "string",
+          "description": "ID следующего диалога"
+        },
+        "conditions": {
+          "$ref": "#/definitions/Conditions",
+          "description": "Условия для показа этого варианта"
+        },
+        "effects": {
+          "$ref": "#/definitions/Effects",
+          "description": "Эффекты при выборе этого варианта"
+        },
+        "once": {
+          "type": "boolean",
+          "description": "Показывать этот выбор только один раз",
+          "default": false
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Всплывающая подсказка для выбора"
+        }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "Conditions": {
+      "type": "object",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "Условия на переменные (имя: значение или {op: '>=', value: 10})"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Необходимые флаги"
+        },
+        "not_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Флаги, которых НЕ должно быть"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Необходимые предметы в инвентаре"
+        },
+        "custom": {
+          "type": "string",
+          "description": "Кастомное условие (JS код)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Effects": {
+      "type": "object",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "Изменения переменных (имя: значение или {op: '+=', value: 10})"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Флаги для установки"
+        },
+        "remove_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Флаги для удаления"
+        },
+        "items": {
+          "type": "object",
+          "description": "Предметы для добавления/удаления (имя: количество)"
+        },
+        "custom": {
+          "type": "string",
+          "description": "Кастомный эффект (JS код)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Character": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Отображаемое имя персонажа"
+        },
+        "portrait": {
+          "type": "string",
+          "description": "Путь к портрету"
+        },
+        "color": {
+          "type": "string",
+          "description": "Цвет текста персонажа"
+        },
+        "description": {
+          "type": "string",
+          "description": "Описание персонажа"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  }
+}

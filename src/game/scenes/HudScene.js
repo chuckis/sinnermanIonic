@@ -31,7 +31,7 @@ export class HudScene extends BaseUIScene {
         this.hudData = {
             health: 100,
             maxHealth: 100,
-            gold: 0,
+            gold: 33,
             power: 50,
             maxPower: 100,
             level: 1,

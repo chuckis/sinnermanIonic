@@ -8,7 +8,6 @@ export default class DialogSystem {
     this.currentDialog = null;
   }
 
-  // Загрузка диалогов из JSON
   loadDialogData(data) {
     if (!data) return;
     if (!data.dialogs) return;

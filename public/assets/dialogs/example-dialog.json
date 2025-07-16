@@ -15,7 +15,7 @@
   "globalVariables": {
     "health": 100,
     "gold": 50,
-    "reputation": 0
+    "experience": 10
   },
   "dialogs": [
     {
@@ -29,7 +29,7 @@
           "next": "guard_friendly",
           "effects": {
             "variables": {
-              "reputation": {
+              "experience": {
                 "op": "+=",
                 "value": 1
               }
@@ -41,7 +41,7 @@
           "next": "guard_hostile",
           "effects": {
             "variables": {
-              "reputation": {
+              "experience": {
                 "op": "+=",
                 "value": -2
               }
@@ -65,7 +65,7 @@
                 "op": "+=",
                 "value": -10
               },
-              "reputation": {
+              "experience": {
                 "op": "+=",
                 "value": -1
               }
@@ -116,7 +116,7 @@
           "next": "guard_apologize",
           "effects": {
             "variables": {
-              "reputation": {
+              "experience": {
                 "op": "+=",
                 "value": 1
               }
@@ -185,6 +185,33 @@
           "text": "Мне нужна информация",
           "next": "merchant_info"
         }
+      ]
+    },
+    {
+      "id" : "merchant_info",
+      "speaker": "merchant",
+      "text": "Инфа сто процентов, но я хочу 10 золотых",
+      "choices" : [
+        {
+          "text": "------------",
+          "conditions": {
+            "variables": {
+              "experience": 10
+            }
+          }
+        },
+        {
+          "text": "+++++++++++++",
+          "next": "guard_bribed",
+          "conditions": {
+            "variables": {
+              "gold": {
+                "op": "+",
+                "value": -10
+              }
+            }
+            }
+          }
       ]
     }
   ]
