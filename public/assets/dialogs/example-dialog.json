@@ -206,8 +206,8 @@
           "conditions": {
             "variables": {
               "gold": {
-                "op": "+",
-                "value": -10
+                "op": ">=",
+                "value": 10
               }
             }
             }

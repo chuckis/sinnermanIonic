@@ -325,6 +325,7 @@ export class DialogUIScene extends BaseUIScene {
         if (this.onDialogEnd) {
             this.onDialogEnd();
         }
+        console.log("DialogUiScene endDialog");
     }
 
     onHide() {

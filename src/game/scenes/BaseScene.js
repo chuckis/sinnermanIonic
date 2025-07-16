@@ -7,6 +7,7 @@ import VisualFeedbackManager from '../managers/VisualFeedbackManager';
 import Utils from '../Utils';
 import DialogSystem from '../managers/DialogSystem';
 import { gameState } from "../state.js";
+import Thing from "@/game/entities/Thing.js";
 
 export default class BaseScene extends Phaser.Scene {
     constructor() {
@@ -45,6 +46,7 @@ export default class BaseScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 48
         });
+        this.load.image('star', 'assets/star.png');
         this.load.json('dialogs', './assets/dialogs/example-dialog.json');
     }
 
@@ -75,7 +77,7 @@ export default class BaseScene extends Phaser.Scene {
         this.scene.launch('Hud', {
             parentScene: this,
             config: {
-                relativeWidth: 0.8,
+                relativeWidth: 1.0,
                 relativeHeight: 0.15,
                 anchorX: 0.02,
                 anchorY: 0.02
@@ -85,6 +87,13 @@ export default class BaseScene extends Phaser.Scene {
         // Load dialog data
         const dialogData = this.cache.json.get('dialogs');
         this.dialogSystem.loadDialogData(dialogData);
+
+        this.physics.add.collider(this.hero, this.star, function (object1, object2) {
+            const star = (object1.key === 'star') ? object1 : object2;
+            star.destroy();
+            this.game.events.emit('update-gold', 250); //NOT WORKING BECAUSE NO EVENTS OBJ HERE
+            console.log("GOLD!!!");
+        })
     }
 
     /**
@@ -169,7 +178,7 @@ export default class BaseScene extends Phaser.Scene {
         this.createAnimations();
         this.hero = new Hero(this, 0, 0, 'hero');
         this.npc = new NPC(this, 8 * this.tileSize + this.tileSize/2, 2 * this.tileSize + this.tileSize/2, 'dummy');
-        // this.dialogue = new Dialogue(this);
+        this.star = new Thing(this, 5, 5, 'star');
     }
 
     setupGameSystems() {
@@ -182,7 +191,7 @@ export default class BaseScene extends Phaser.Scene {
     // #region Input Handling
     setupInput() {
         this.input.on('pointerdown', this.handleClick.bind(this));
-        this.input.keyboard.on('keydown-ESC', this.handleEscKey.bind(this));
+        // this.input.keyboard.on('keydown-ESC', this.handleEscKey.bind(this));
         this.input.on('pointermove', this.handlePointerMove.bind(this));
     }
 
@@ -202,12 +211,6 @@ export default class BaseScene extends Phaser.Scene {
         }
 
         this.findPath(gridPos);
-    }
-
-    handleEscKey(event) {
-        if (this.isDialogActive) {
-            this.endDialog();
-        }
     }
 
     handlePointerMove(pointer) {
