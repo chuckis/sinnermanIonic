@@ -88,12 +88,15 @@ export default class BaseScene extends Phaser.Scene {
         const dialogData = this.cache.json.get('dialogs');
         this.dialogSystem.loadDialogData(dialogData);
 
-        this.physics.add.collider(this.hero, this.star, function (object1, object2) {
+        this.physics.add.collider(this.hero, this.star, (object1, object2) => {
             const star = (object1.key === 'star') ? object1 : object2;
             star.destroy();
-            this.game.events.emit('update-gold', 250); //NOT WORKING BECAUSE NO EVENTS OBJ HERE
-            console.log("GOLD!!!");
-        })
+
+            // Emit gold update event - this should trigger the HUD update
+            this.game.events.emit('update-gold', 250);
+
+            console.log("GOLD!!! - Event emitted");
+        }, null, this);
     }
 
     /**

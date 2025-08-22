@@ -327,9 +327,13 @@ export class HudScene extends BaseUIScene {
         this.refreshHealthDisplay();
     }
 
-    updateGold(gold) {
-        this.hudData.gold = gold;
+    // In your HudScene, update the updateGold method to add gold instead of setting it:
+    updateGold(goldAmount) {
+        // Add to current gold instead of setting it
+        this.hudData.gold += goldAmount;
         this.refreshGoldDisplay();
+
+        console.log(`Gold updated: +${goldAmount}, Total: ${this.hudData.gold}`);
     }
 
     updatePower(power, maxPower = null) {
